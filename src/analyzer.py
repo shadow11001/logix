@@ -112,3 +112,90 @@ class LogAnalyzer:
                 "summary": f"Failed to analyze health data: {str(e)}",
                 "findings": []
             }
+    def analyze_config(self, content: str, file_path: str, model: str, user_prompt: str = None) -> dict:
+        """
+        Analyzes a configuration file for syntax, security, and best practices.
+        """
+        system_prompt = f"""
+        You are an expert DevOps Engineer and Security Specialist.
+        Your task is to review the provided configuration file (path: {file_path}) for:
+        1. Syntax errors.
+        2. Security vulnerabilities (e.g., weak passwords, exposed keys, permissive permissions).
+        3. Deprecated settings.
+        4. Best practice violations.
+
+        Output your analysis in valid JSON format:
+        {{
+            "has_issues": boolean,
+            "summary": "Brief executive summary",
+            "findings": [
+                {{
+                    "line_number": integer (or null if not applicable),
+                    "parameter": "The specific config key/section",
+                    "issue": "Description of the problem",
+                    "severity": "critical|warning|info",
+                    "suggestion": "How to fix it",
+                    "suggested_value": "The optimized value (if applicable)"
+                }}
+            ]
+        }}
+        """
+
+        user_content = f"Config File Content:\n\n{content}"
+        if user_prompt:
+            user_content += f"\n\nAdditional Instruction: {user_prompt}"
+
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[ 
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            if content.startswith("```json"):
+                content = content.replace("```json", "").replace("```", "")
+            
+            return json.loads(content)
+        except Exception as e:
+            return {
+                "has_issues": True,
+                "summary": f"Failed to analyze config due to error: {str(e)}",
+                "findings": []
+            }
+
+    def generate_config(self, prompt: str, model: str) -> dict:
+        """
+        Generates a configuration file based on the user's prompt.
+        """
+        system_prompt = """
+        You are an expert DevOps Engineer.
+        Your task is to generate a configuration file based on the user's requirements.
+        Ensure the configuration is secure, follows lines best practices, and includes comments explaining key settings.
+        
+        Output valid JSON:
+        {
+            "content": "The full content of the generated configuration file"
+        }
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[ 
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            if content.startswith("```json"):
+                content = content.replace("```json", "").replace("```", "")
+            
+            return json.loads(content)
+        except Exception as e:
+            return {"error": str(e)}

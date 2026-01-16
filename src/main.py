@@ -164,6 +164,9 @@ def main():
     parser.add_argument("--lines", type=int, default=50, help="Number of log lines to analyze")
     parser.add_argument("--source", type=str, default="journalctl", help="Log source: 'journalctl', /path/to/file, 'menu', or 'all'")
     parser.add_argument("--cron", action="store_true", help="Run in cron/headless mode")
+    parser.add_argument("--config", type=str, help="Path to a configuration file to analyze")
+    parser.add_argument("--generate", type=str, help="Path to save a generated configuration file (requires --prompt)")
+    parser.add_argument("--prompt", type=str, help="Custom instruction for analysis or generation")
     parser.add_argument("--show-ignored", action="store_true", help="Show list of ignored patterns")
     parser.add_argument("--monitor", action="store_true", help="Run in System Monitor mode")
     parser.add_argument("--duration", type=str, default="60", help="Monitoring duration (e.g. 60s, 5m, 1h)")
@@ -195,7 +198,6 @@ def main():
         console.print(f"[bold green]Starting Logix[/bold green]")
         console.print(f"Model: [cyan]{args.model}[/cyan]")
     
-    # --- System Monitor Mode ---
     if args.monitor:
         monitor = SystemMonitor()
         
@@ -255,6 +257,93 @@ def main():
         
         sys.exit(0)
     # ---------------------------
+
+    # --- Generation Mode ---
+    if args.generate:
+        if not args.prompt:
+            console.print("[bold red]Error:[/bold red] You must provide a --prompt when using --generate.")
+            sys.exit(1)
+            
+        console.rule("[bold cyan]Generating Configuration[/bold cyan]")
+        console.print(f"Goal: [dim]{args.prompt}[/dim]")
+        
+        with console.status(f"[bold green]Generating content for {args.generate}..."):
+            analyzer = LogAnalyzer(Config.OPENROUTER_API_KEY, Config.OPENROUTER_BASE_URL)
+            result = analyzer.generate_config(args.prompt, args.model)
+            
+        if "error" in result:
+             console.print(f"[bold red]Generation Failed:[/bold red] {result['error']}")
+             sys.exit(1)
+             
+        generated_content = result.get("content", "")
+        if not generated_content:
+             console.print("[bold red]Generation Failed:[/bold red] No content returned.")
+             sys.exit(1)
+
+        console.print(Panel(generated_content, title="Preview", border_style="blue", height=20))
+        
+        if Confirm.ask(f"Save this content to {args.generate}?", default=False):
+            try:
+                # Basic check to avoid accidental overwrite without confirmation 
+                # (though simple overwrite is standard cli behavior, explicit is safer here)
+                path = Path(args.generate)
+                if path.exists() and not Confirm.ask(f"[red]File {args.generate} already exists. Overwrite?[/red]", default=False):
+                    console.print("[yellow]Save cancelled.[/yellow]")
+                    sys.exit(0)
+                
+                path.write_text(generated_content, encoding="utf-8")
+                console.print(f"[bold green]File saved to {args.generate}[/bold green]")
+            except Exception as e:
+                console.print(f"[bold red]Failed to save file:[/bold red] {e}")
+        
+        sys.exit(0)
+    # -----------------------
+
+    # --- Config Check Mode ---
+    if args.config:
+        console.rule("[bold cyan]Analyzing Configuration[/bold cyan]")
+        console.print(f"File: [dim]{args.config}[/dim]")
+        if args.prompt:
+            console.print(f"Focus: [dim]{args.prompt}[/dim]")
+
+        # 1. Collect
+        content = LogCollector.read_file(args.config)
+        if content.startswith("Error"):
+            console.print(f"[bold red]{content}[/bold red]")
+            sys.exit(1)
+            
+        # 2. Analyze
+        with console.status(f"[bold green]Auditing configuration with AI..."):
+            analyzer = LogAnalyzer(Config.OPENROUTER_API_KEY, Config.OPENROUTER_BASE_URL)
+            analysis = analyzer.analyze_config(content, args.config, args.model, args.prompt)
+            
+        # 3. Report Results
+        has_issues = analysis.get("has_issues", False)
+        summary = analysis.get("summary", "Analysis complete.")
+        
+        border_style = "red" if has_issues else "green"
+        console.print(Panel(summary, title="Config Audit Result", border_style=border_style))
+        
+        findings = analysis.get("findings", [])
+        if not findings:
+            console.print("[bold green]No issues found. Configuration looks good.[/bold green]")
+        else:
+            for i, finding in enumerate(findings, 1):
+                severity = finding.get('severity', 'info')
+                color = "red" if severity in ['critical', 'high'] else "yellow"
+                
+                console.print(f"\n[{color}][bold]{i}. {finding.get('issue')} ({severity.upper()})[/bold][/{color}]")
+                if finding.get('line_number'):
+                    console.print(f"   [dim]Line: {finding.get('line_number')}[/dim]")
+                if finding.get('parameter'):
+                    console.print(f"   [dim]Parameter: {finding.get('parameter')}[/dim]")
+                
+                console.print(f"   [bold]Suggestion:[/bold] {finding.get('suggestion')}")
+                if finding.get('suggested_value'):
+                    console.print(f"   [bold blue]Recommended Value:[/bold blue] {finding.get('suggested_value')}")
+
+        sys.exit(0)
+    # -------------------------
 
     # Determine Sources
     sources_to_check = {}

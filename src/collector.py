@@ -43,3 +43,17 @@ class LogCollector:
                     return "".join(content[-lines:])
             except Exception as e2:
                  return f"Error reading file {filepath}: {e} | {e2}"
+
+    @staticmethod
+    def read_file(filepath: str) -> str:
+        """
+        Reads the full content of a configuration file.
+        """
+        path = Path(filepath)
+        if not path.exists():
+            return f"Error: File {filepath} not found."
+        
+        try:
+            return path.read_text(encoding='utf-8')
+        except Exception as e:
+            return f"Error reading file {filepath}: {str(e)}"
