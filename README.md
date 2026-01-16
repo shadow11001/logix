@@ -121,6 +121,22 @@ If the tool finds an error you don't care about, you can choose to "Ignore" it d
 logix --show-ignored
 ```
 
+### 5. Configuration File Analysis
+Analyze configuration files for security vulnerabilities, syntax errors, and best practices. You can optionally omit `--prompt` for a general audit.
+```bash
+# General audit
+logix --config /etc/ssh/sshd_config
+
+# Targeted audit with intent
+logix --config /etc/nginx/nginx.conf --prompt "Check for deprecated SSL protocols and weak ciphers"
+```
+
+### 6. Generate Configuration Files
+Generate new configuration files from scratch using AI prompts.
+```bash
+logix --generate nginx-hardening.conf --prompt "Create a secure Nginx configuration for a static site with SSL and HSTS enabled"
+```
+
 ## CLI Arguments
 
 | Argument | Description | Default |
@@ -128,6 +144,9 @@ logix --show-ignored
 | `--source` | Log source to check (`journalctl`, `/path/to/file`, `menu`, `all`) | `journalctl` |
 | `--lines` | Number of log lines to analyze | `50` |
 | `--model` | Specific OpenRouter model to use | `google/gemini-2.0-flash-001` |
+| `--config` | Path to a configuration file to analyze | `None` |
+| `--generate` | Path to save a generated configuration file (requires `--prompt`) | `None` |
+| `--prompt` | Custom instruction for analysis or generation | `None` |
 | `--monitor` | specific functionality to run system monitor | `False` |
 | `--duration` | Duration for monitoring (e.g., `30s`, `10m`) | `60` |
 | `--interval` | Snapshot interval for monitoring in seconds | `5` |
