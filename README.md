@@ -27,15 +27,21 @@ It is designed to be a "digital mechanic" for your Linux system, capable of unde
     cd logix
     ```
 
-2.  **Set up a virtual environment** (recommended):
+2.  **Install the CLI Tool**:
+
+    **Option A: System-Wide Install (Recommended)**
+    Use `pipx` to install `logix` so you can run it from any terminal:
+    ```bash
+    # install pipx if you haven't already (e.g., sudo apt install pipx)
+    pipx install .
+    ```
+
+    **Option B: Developer Install**
+    Run inside a virtual environment for development:
     ```bash
     python -m venv .venv
     source .venv/bin/activate
-    ```
-
-3.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
+    pip install -e .
     ```
 
 ## Configuration
@@ -70,49 +76,49 @@ It is designed to be a "digital mechanic" for your Linux system, capable of unde
 
 ## Usage
 
-Run the tool from the repository root using `python -m src.main`.
+Run the tool using the `logix` command.
 
 ### 1. Interactive Log Analysis (Default)
 Check the system journal (journalctl) for recent errors:
 ```bash
-python -m src.main
+logix
 ```
 
 Check a specific file:
 ```bash
-python -m src.main --source /var/log/Xorg.0.log
+logix --source /var/log/Xorg.0.log
 ```
 
 Select from a menu of common logs:
 ```bash
-python -m src.main --source menu
+logix --source menu
 ```
 
 Check ALL configured log sources:
 ```bash
-python -m src.main --source all
+logix --source all
 ```
 
 ### 2. System Monitoring Mode
 Monitor system resources (CPU/RAM) for a specific duration, then analyze logs from that period to find correlations:
 ```bash
 # Monitor for 60 seconds (default)
-python -m src.main --monitor
+logix --monitor
 
 # Monitor for 5 minutes
-python -m src.main --monitor --duration 5m
+logix --monitor --duration 5m
 ```
 
 ### 3. Automated Background Checks (Cron)
 Run without user interaction. If issues are found, it uses the configured notification channels (Discord/Email). Useful for daily health checks.
 ```bash
-python -m src.main --cron
+logix --cron
 ```
 
 ### 4. Managing Ignored Patterns
 If the tool finds an error you don't care about, you can choose to "Ignore" it during the interactive session. To see what you are currently ignoring:
 ```bash
-python -m src.main --show-ignored
+logix --show-ignored
 ```
 
 ## CLI Arguments
