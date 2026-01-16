@@ -4,7 +4,24 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+# Logic to check multiple locations for .env
+_env_paths = [
+    Path.cwd() / ".env",                          # 1. Current directory
+    Path.home() / ".config" / "logix" / ".env",   # 2. XDG Config
+    Path.home() / ".logix" / ".env",              # 3. Dotfolder in home
+    Path(__file__).parent.parent / ".env"         # 4. Source root (for dev)
+]
+
+_loaded_path = None
+for _path in _env_paths:
+    if _path.exists():
+        load_dotenv(dotenv_path=_path)
+        _loaded_path = _path
+        break
+
+# Fallback if nothing specific found
+if not _loaded_path:
+    load_dotenv()
 
 class Config:
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -45,4 +62,9 @@ class Config:
     @staticmethod
     def validate():
         if not Config.OPENROUTER_API_KEY:
-            raise ValueError("OPENROUTER_API_KEY not found in environment variables. Please check your .env file.")
+            paths_str = "\n".join([f"  - {p}" for p in _env_paths])
+            raise ValueError(
+                f"OPENROUTER_API_KEY not found in environment variables.\n"
+                f"Checked the following locations for a .env file:\n{paths_str}\n\n"
+                f"Please create ~/.config/logix/.env and add your OPENROUTER_API_KEY."
+            )
