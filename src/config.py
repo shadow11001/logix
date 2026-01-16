@@ -49,15 +49,25 @@ class Config:
     }
     
     # Load user defined logs
-    _user_logs_path = Path("user_logs.json")
-    if _user_logs_path.exists():
-        try:
-            with open(_user_logs_path, "r") as f:
-                _user_logs = json.load(f)
-                if isinstance(_user_logs, dict):
-                    COMMON_LOGS.update(_user_logs)
-        except Exception as e:
-            print(f"Warning: Failed to load user_logs.json: {e}")
+    # Check standard config directories
+    _config_dirs = [
+        Path.cwd(),
+        Path.home() / ".config" / "logix",
+        Path.home() / ".logix",
+        Path(__file__).parent.parent
+    ]
+
+    for _dir in _config_dirs:
+        _user_logs_path = _dir / "user_logs.json"
+        if _user_logs_path.exists():
+            try:
+                with open(_user_logs_path, "r") as f:
+                    _user_logs = json.load(f)
+                    if isinstance(_user_logs, dict):
+                        COMMON_LOGS.update(_user_logs)
+                break # Stop after finding the first valid config
+            except Exception as e:
+                print(f"Warning: Failed to load user_logs.json from {_user_logs_path}: {e}")
 
     @staticmethod
     def validate():
