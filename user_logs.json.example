@@ -1,0 +1,4 @@
+{
+    "Apache Access": "/var/log/apache2/access.log",
+    "Apache Error": "/var/log/apache2/error.log"
+}

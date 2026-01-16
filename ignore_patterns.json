@@ -1,0 +1,4 @@
+[
+    "plasmashell[27099]: no screens!!",
+    "org_kde_powerdevil[1801]: [ 29295] Feature 0xdd should not exist but ddc_get_nontable_vcp_value() succeeds"
+]
